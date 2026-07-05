@@ -1,0 +1,14 @@
+# AgentTrace — Python dependencies
+#
+# Install with:  pip install -r requirements.txt
+#
+# Tested with Python 3.11 – 3.14
+
+# ── Server ──────────────────────────────────────────────────────────────────
+fastapi>=0.115.0          # Web framework (0.115+ supports Python 3.14)
+uvicorn[standard]>=0.30.0 # ASGI server (includes websockets + watchgod for --reload)
+sqlalchemy>=2.0.36        # ORM + SQLite support
+pydantic>=2.9.0           # Request / response validation (2.9+ has Python 3.14 wheels)
+
+# ── SDK ─────────────────────────────────────────────────────────────────────
+httpx>=0.27.0             # HTTP client used by the SDK to send run payloads
