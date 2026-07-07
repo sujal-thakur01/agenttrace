@@ -10,10 +10,26 @@ Exposes four endpoints:
 Tables are auto-created on startup. CORS is open for all origins.
 """
 
+import os
+import sys
 from datetime import datetime
 from typing import List, Optional
 
-from fastapi import Depends, FastAPI, HTTPException, Query
+# ---------------------------------------------------------------------------
+# SDK path — make sdk/agenttrace importable regardless of working directory.
+# os.path.abspath(__file__) is the canonical path to this file (server/main.py)
+# whether the process is started from the repo root, from /app on Railway, or
+# anywhere else. We insert the sdk/ directory one level up from server/.
+# ---------------------------------------------------------------------------
+_SERVER_DIR = os.path.dirname(os.path.abspath(__file__))
+_SDK_PATH   = os.path.join(_SERVER_DIR, "..", "sdk")
+_SDK_PATH   = os.path.normpath(_SDK_PATH)
+if _SDK_PATH not in sys.path:
+    sys.path.insert(0, _SDK_PATH)
+
+from agenttrace.client import PROMPT_TOKEN_COST_USD, COMPLETION_TOKEN_COST_USD  # noqa: E402
+
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -155,6 +171,43 @@ def _compute_totals(steps: List[StepIn]) -> tuple[Optional[float], Optional[int]
 def health_check():
     """Simple liveness probe."""
     return {"status": "ok"}
+
+
+@app.get("/api/config", tags=["meta"])
+def get_config():
+    """
+    Return dashboard-relevant server configuration.
+
+    ``groq_configured`` is True only when GROQ_API_KEY is present in the
+    server environment — the key itself is never returned to the client.
+    """
+    return {
+        "prompt_token_cost_usd": PROMPT_TOKEN_COST_USD,
+        "completion_token_cost_usd": COMPLETION_TOKEN_COST_USD,
+        "db_backend": "sqlite",
+        "server_version": "0.1.0",
+        "groq_configured": bool(os.environ.get("GROQ_API_KEY")),
+    }
+
+
+@app.post("/api/demo/trigger", tags=["demo"])
+def trigger_demo(request: Request):
+    """
+    Run one demo pipeline synchronously and return the new run_id.
+
+    Uses the incoming request's base URL as the SDK server_url so the demo
+    works correctly in both local and production deployments.
+    Returns HTTP 503 if GROQ_API_KEY is missing or the run fails to start.
+    """
+    server_url = str(request.base_url).rstrip("/")
+    try:
+        from .demo_runner import run_demo  # noqa: PLC0415
+        run_id = run_demo(server_url=server_url)
+        return {"status": "ok", "run_id": run_id}
+    except EnvironmentError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=503, detail=f"Demo run failed: {exc}")
 
 
 @app.post("/api/runs", status_code=201, tags=["runs"])
