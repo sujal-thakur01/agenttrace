@@ -15,6 +15,7 @@ from typing import List, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -241,3 +242,13 @@ def get_run(run_id: str, db: Session = Depends(get_db)):
     if run is None:
         raise HTTPException(status_code=404, detail=f"Run {run_id!r} not found.")
     return run
+
+
+# ---------------------------------------------------------------------------
+# Static frontend (must be AFTER all /api/ routes)
+# ---------------------------------------------------------------------------
+
+import os
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+os.makedirs(static_dir, exist_ok=True)
+app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")

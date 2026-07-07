@@ -12,3 +12,7 @@ pydantic>=2.9.0           # Request / response validation (2.9+ has Python 3.14 
 
 # ── SDK ─────────────────────────────────────────────────────────────────────
 httpx>=0.27.0             # HTTP client used by the SDK to send run payloads
+
+# ── Examples ─────────────────────────────────────────────────────────────────
+groq>=0.11.0              # Groq Python client (OpenAI-compatible) used by demo_pipeline.py
+python-dotenv>=1.0.0      # Loads GROQ_API_KEY from examples/.env

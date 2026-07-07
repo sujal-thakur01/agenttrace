@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+node_modules/
+dashboard/dist/
+server/static/*
+!server/static/.gitkeep
+*.env
+!.env.example
+server/agenttrace.db
+.DS_Store
